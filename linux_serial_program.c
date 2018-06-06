@@ -9,14 +9,14 @@
 #define PORT_PATH_MAX 64
 #define INVALID_HANDLE (int)0xFFFFFFFF
 
-typedef enum 
+typedef enum
 {
-    COMM_PORT_OK                = 0, 
+    COMM_PORT_OK                = 0,
     COMM_PORT_OPEN_ERROR        = 0x100,
-    COMM_PORT_GET_ERROR         = 0x200, 
+    COMM_PORT_GET_ERROR         = 0x200,
     COMM_PORT_GET_PARM_ERROR    = 0x201,
 
-    COMM_PORT_SET_FAIL          = 0x300, 
+    COMM_PORT_SET_FAIL          = 0x300,
     COMM_PORT_SET_BRT_ERROR     = 0x301,
     COMM_PORT_SET_ICF_ERROR     = 0x302,
     COMM_PORT_SET_FCT_ERROR     = 0x303,
@@ -36,7 +36,7 @@ typedef enum
     ICF_7E1,
     ICF_7O1,
     ICF_7S1,
-    
+
     ICF_UNKNOWN = 0xFFFFFFFF,
 }CommIcf_e;
 
@@ -45,7 +45,7 @@ typedef enum
     FCT_RTS_CTS = 0,
     FCT_XON_XOFF,
     FCT_NO,
-    
+
     FCT_UNKNOWN = 0xFFFFFFFF,
 }CommFct_e;
 
@@ -115,15 +115,18 @@ int main(int argc,char** argv)
     res = comm_Get_Opt(&portObj, argc, argv);
     if(res != COMM_PORT_OK)
     {
+        printf("device parm get fail!\n");
         return res;
     }
 
-    if(comm_Open_Port(portObj) != COMM_PORT_OK)
+    res = comm_Open_Port(portObj);
+    if(res != COMM_PORT_OK)
     {
         printf("device open fail!\n");
     }
-    
-    if(comm_Close_Port(portObj) != COMM_PORT_OK)
+
+    res = comm_Close_Port(portObj);
+    if(res != COMM_PORT_SET_BRT_ERROR)
     {
         printf("device close fail!\n");
     }
@@ -188,7 +191,7 @@ static CommErrorCode_e comm_Get_Opt(portObj_t *portObj, int argc, char **argv)
             printf("%s ", argv[optind++]);
         }
         printf("\n");
-                    
+
         return COMM_PORT_GET_PARM_ERROR;
     }
 
