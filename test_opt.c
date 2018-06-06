@@ -94,9 +94,9 @@ CommErrorCode_e comm_Close_Port(portObj_t portObj);
 static CommErrorCode_e comm_Brt_Set(portObj_t portObj);
 static CommErrorCode_e comm_Icf_Set(portObj_t portObj);
 static CommErrorCode_e comm_Fct_Set(portObj_t portObj);
-static CommErrorCode_e comm_Get_Opt(portObj_t portObj, int argc, char **argv);
-static CommErrorCode_e comm_Fct_Map(portObj_t portObj, char *opt);
-static CommErrorCode_e comm_Icf_Map(portObj_t portObj, char *opt);
+static CommErrorCode_e comm_Get_Opt(portObj_t *portObj, int argc, char **argv);
+static CommErrorCode_e comm_Fct_Map(portObj_t *portObj, char *opt);
+static CommErrorCode_e comm_Icf_Map(portObj_t *portObj, char *opt);
 
 static struct option commOpts[] = {
     { "port",           required_argument, 0, 'p'},
@@ -107,33 +107,23 @@ static struct option commOpts[] = {
 };
 static char shortOpts[] = "p:b:f:i:";
 
-static portObj_t g_portObj;
-
 int main(int argc,char** argv)
 {
-//    portObj_t g_portObj;
+    portObj_t portObj;
     CommErrorCode_e res;
 
-    res = comm_Get_Opt(g_portObj, argc, argv);
+    res = comm_Get_Opt(&portObj, argc, argv);
     if(res != COMM_PORT_OK)
     {
         return res;
     }
 
-    if(comm_Open_Port(g_portObj) != COMM_PORT_OK)
+    if(comm_Open_Port(portObj) != COMM_PORT_OK)
     {
         printf("device open fail!\n");
     }
-    else
-    {
-        printf("port handle: %d\n", g_portObj.hd);
-        printf("port path: %s\n", g_portObj.portName);
-        printf("port baudrare: %u\n", g_portObj.baudrate);
-        printf("port icf: %d\n", g_portObj.icf);
-        printf("port flow control: %d\n", g_portObj.flowCtrl);
-    }
     
-    if(comm_Close_Port(g_portObj) != COMM_PORT_OK)
+    if(comm_Close_Port(portObj) != COMM_PORT_OK)
     {
         printf("device close fail!\n");
     }
@@ -141,7 +131,7 @@ int main(int argc,char** argv)
     return 0;
 }
 
-static CommErrorCode_e comm_Get_Opt(portObj_t portObj, int argc, char **argv)
+static CommErrorCode_e comm_Get_Opt(portObj_t *portObj, int argc, char **argv)
 {
     while(1)
     {
@@ -160,7 +150,7 @@ static CommErrorCode_e comm_Get_Opt(portObj_t portObj, int argc, char **argv)
             case 'p':
                 if(strlen(optarg)<PORT_PATH_MAX)
                 {
-                    strncpy(portObj.portName, optarg, strlen(optarg));
+                    strncpy(portObj->portName, optarg, strlen(optarg));
                 }
                 else
                 {
@@ -169,7 +159,7 @@ static CommErrorCode_e comm_Get_Opt(portObj_t portObj, int argc, char **argv)
                 }
                 break;
             case 'b':
-                portObj.baudrate = (unsigned int)atoi(optarg);
+                portObj->baudrate = (unsigned int)atoi(optarg);
                 break;
             case 'f':
                 res = comm_Fct_Map(portObj, optarg);
@@ -251,6 +241,12 @@ CommErrorCode_e comm_Open_Port(portObj_t portObj)
         return COMM_PORT_SET_FAIL;
     }
 
+    printf("port handle: %d\n", portObj.hd);
+    printf("port path: %s\n", portObj.portName);
+    printf("port baudrare: %u\n", portObj.baudrate);
+    printf("port icf: %d\n", portObj.icf);
+    printf("port flow control: %d\n", portObj.flowCtrl);
+
     return res;
 }
 
@@ -264,7 +260,7 @@ CommErrorCode_e comm_Close_Port(portObj_t portObj)
     return COMM_PORT_OK;
 }
 
-static CommErrorCode_e comm_Fct_Map(portObj_t portObj, char *opt)
+static CommErrorCode_e comm_Fct_Map(portObj_t *portObj, char *opt)
 {
     unsigned int i;
 
@@ -272,10 +268,7 @@ static CommErrorCode_e comm_Fct_Map(portObj_t portObj, char *opt)
     {
         if(strncmp(opt, fctMap[i].s_opt, strlen(fctMap[i].s_opt)) == 0)
         {
-            portObj.flowCtrl = fctMap[i].ftc;
-            printf("go here, fct?\n");
-            printf("ftc: %d\n",fctMap[i].ftc);
-            printf("ftc: %d\n",portObj.flowCtrl);
+            portObj->flowCtrl = fctMap[i].ftc;
             return COMM_PORT_OK;
         }
     }
@@ -283,7 +276,7 @@ static CommErrorCode_e comm_Fct_Map(portObj_t portObj, char *opt)
     return COMM_PORT_MAP_FCT_ERROR;
 }
 
-static CommErrorCode_e comm_Icf_Map(portObj_t portObj, char *opt)
+static CommErrorCode_e comm_Icf_Map(portObj_t *portObj, char *opt)
 {
     unsigned int i;
 
@@ -291,10 +284,7 @@ static CommErrorCode_e comm_Icf_Map(portObj_t portObj, char *opt)
     {
         if(strncmp(opt, icfMap[i].s_opt, strlen(icfMap[i].s_opt)) == 0)
         {
-            portObj.icf = icfMap[i].icf;
-            printf("go here, icf?\n");
-            printf("icf: %d\n",icfMap[i].icf);
-            printf("icf: %d\n",portObj.icf);
+            portObj->icf = icfMap[i].icf;
             return COMM_PORT_OK;
         }
     }
