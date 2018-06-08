@@ -50,5 +50,10 @@ typedef struct
 }portObj_t;
 
 CommErrorCode_e comm_Get_Opt(portObj_t *portObj, int argc, char **argv);
-CommErrorCode_e comm_Open_Port(portObj_t portObj);
-CommErrorCode_e comm_Close_Port(portObj_t portObj);
+CommErrorCode_e comm_Open_Port(portObj_t *portObj);
+CommErrorCode_e comm_Brt_Set(portObj_t *portObj);
+CommErrorCode_e comm_Icf_Set(portObj_t *portObj);
+CommErrorCode_e comm_Fct_Set(portObj_t *portObj);
+CommErrorCode_e comm_Close_Port(portObj_t *portObj);
+CommErrorCode_e comm_Get_Port_Atrribute(portObj_t *portObj);
+
