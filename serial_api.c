@@ -2,7 +2,7 @@
 #include <stdlib.h>     //atoi
 #include <termios.h>    //termios struct
 #include <fcntl.h>      //O_RDWR | O_NOCTTY
-#include <unistd.h>
+#include <unistd.h>     //close()
 #include <string.h>     //needed for memset
 #include <getopt.h>     //get cmdline parm
 #include "serial_api.h"
@@ -20,17 +20,16 @@ typedef struct
     const char  *s_opt;
 }fctMap_t;
 
-/***** local define *****/
-#define ICF_MAP_LEN (sizeof(icfMap)) / (sizeof(icfMap[0]))
-#define FCT_MAP_LEN (sizeof(fctMap)) / (sizeof(fctMap[0]))
-#define INVALID_HANDLE (int)0xFFFFFFFF
+typedef struct
+{
+    unsigned int    brt;
+    speed_t         brt_mask;
+}brtMap_t;
 
 /***** local function declare *****/
-static CommErrorCode_e comm_Brt_Set(portObj_t portObj);
-static CommErrorCode_e comm_Icf_Set(portObj_t portObj);
-static CommErrorCode_e comm_Fct_Set(portObj_t portObj);
 static CommErrorCode_e comm_Fct_Map(portObj_t *portObj, char *opt);
 static CommErrorCode_e comm_Icf_Map(portObj_t *portObj, char *opt);
+static unsigned int comm_Brt_Map(speed_t speed);
 
 /***** local data *****/
 static struct option commOpts[] = {
@@ -57,7 +56,79 @@ static const fctMap_t fctMap[] = {
     { FCT_UNKNOWN, NULL },
 };
 
-/**** function implementation *****/
+static const brtMap_t brtMap[] = {
+    { 300,      B300    },
+    { 1200,     B1200   },
+    { 2400,     B2400   },
+    { 4800,     B4800   },
+    { 9600,     B9600   },
+    { 19200,    B19200  },
+    { 38400,    B38400  },
+    { 57600,    B57600  },
+    { 115200,   B115200 },
+    { 230400,   B230400 },
+    { 460800,   B460800 },
+    { 921600,   B921600 },
+};
+
+/***** local define *****/
+#define ICF_MAP_LEN (sizeof(icfMap)) / (sizeof(icfMap[0]))
+#define FCT_MAP_LEN (sizeof(fctMap)) / (sizeof(fctMap[0]))
+#define BRT_MAP_LEN (sizeof(brtMap)) / (sizeof(brtMap[0]))
+#define INVALID_HANDLE (int)0xFFFFFFFF
+
+/***** local function *****/
+static unsigned int comm_Brt_Map(speed_t speed)
+{
+    unsigned int i;
+
+    for(i=0; i<BRT_MAP_LEN; i++)
+    {
+        if(brtMap[i].brt_mask == speed)
+        {
+            return brtMap[i].brt;
+        }
+    }
+
+    return 0xFFFFFFFF;
+}
+
+static CommErrorCode_e comm_Fct_Map(portObj_t *portObj, char *opt)
+{
+    unsigned int i;
+
+    for(i=0; i<FCT_MAP_LEN; i++)
+    {
+        if(strncmp(opt, fctMap[i].s_opt, strlen(fctMap[i].s_opt)) == 0)
+        {
+            portObj->fct = fctMap[i].ftc;
+            return COMM_PORT_OK;
+        }
+    }
+
+    return COMM_PORT_MAP_FCT_ERROR;
+}
+
+static CommErrorCode_e comm_Icf_Map(portObj_t *portObj, char *opt)
+{
+    unsigned int i;
+
+    for(i=0; i<ICF_MAP_LEN; i++)
+    {
+        if(strncmp(opt, icfMap[i].s_opt, strlen(icfMap[i].s_opt)) == 0)
+        {
+            portObj->icf = icfMap[i].icf;
+            return COMM_PORT_OK;
+        }
+    }
+
+    return COMM_PORT_MAP_ICF_ERROR;
+}
+
+/**** public function *****/
+/*
+ * demo function for get device param from cmd
+ */
 CommErrorCode_e comm_Get_Opt(portObj_t *portObj, int argc, char **argv)
 {
     while(1)
@@ -122,21 +193,25 @@ CommErrorCode_e comm_Get_Opt(portObj_t *portObj, int argc, char **argv)
     return COMM_PORT_OK;
 }
 
-CommErrorCode_e comm_Open_Port(portObj_t portObj)
+/*
+ * open the device with:
+ * 1. baudrate setting
+ * 2. icf setting
+ * 3. flowcontrol setting
+ */
+CommErrorCode_e comm_Open_Port(portObj_t *portObj)
 {
     struct termios  setting;
     CommErrorCode_e res = COMM_PORT_OK;
 
-    portObj.hd = open(portObj.portName, O_RDWR | O_NOCTTY);
-    if(portObj.hd < 0)
+    portObj->hd = open(portObj->portName, O_RDWR | O_NOCTTY);
+    if(portObj->hd < 0)
     {
-        portObj.hd = INVALID_HANDLE;
+        portObj->hd = INVALID_HANDLE;
         return COMM_PORT_OPEN_ERROR;
     }
 
     memset(&setting, 0x0, sizeof(setting));
-
-    setting.c_cflag = CREAD | CLOCAL | HUPCL;
 
     /* set baud rate */
     res = comm_Brt_Set(portObj);
@@ -159,100 +234,114 @@ CommErrorCode_e comm_Open_Port(portObj_t portObj)
         return res;
     }
 
-    /* update termiox NOW */
-    if(tcsetattr(portObj.hd, TCSANOW, &setting) != 0)
+    if(tcgetattr(portObj->hd, &setting) != 0)
     {
-        close(portObj.hd);
-        portObj.hd = INVALID_HANDLE;
+        return COMM_PORT_GET_ERROR;
+    }
+    setting.c_cflag |= CREAD | CLOCAL | HUPCL;
+
+    /* update termiox NOW */
+    if(tcsetattr(portObj->hd, TCSANOW, &setting) != 0)
+    {
+        close(portObj->hd);
+        portObj->hd = INVALID_HANDLE;
 
         return COMM_PORT_SET_FAIL;
     }
-
-    printf("port handle: %d\n", portObj.hd);
-    printf("port path: %s\n", portObj.portName);
-    printf("port baudrare: %u\n", portObj.brt);
-    printf("port icf: %d\n", portObj.icf);
-    printf("port flow control: %d\n", portObj.fct);
 
     return res;
 }
 
-CommErrorCode_e comm_Close_Port(portObj_t portObj)
+/*
+ * close the device
+ */
+CommErrorCode_e comm_Close_Port(portObj_t *portObj)
 {
-    if(portObj.hd != INVALID_HANDLE)
+    if(portObj->hd != INVALID_HANDLE)
     {
-        close(portObj.hd);
-        portObj.hd = INVALID_HANDLE;
+        close(portObj->hd);
+        portObj->hd = INVALID_HANDLE;
     }
     return COMM_PORT_OK;
 }
 
-static CommErrorCode_e comm_Fct_Map(portObj_t *portObj, char *opt)
-{
-    unsigned int i;
-
-    for(i=0; i<FCT_MAP_LEN; i++)
-    {
-        if(strncmp(opt, fctMap[i].s_opt, strlen(fctMap[i].s_opt)) == 0)
-        {
-            portObj->fct = fctMap[i].ftc;
-            return COMM_PORT_OK;
-        }
-    }
-
-    return COMM_PORT_MAP_FCT_ERROR;
-}
-
-static CommErrorCode_e comm_Icf_Map(portObj_t *portObj, char *opt)
-{
-    unsigned int i;
-
-    for(i=0; i<ICF_MAP_LEN; i++)
-    {
-        if(strncmp(opt, icfMap[i].s_opt, strlen(icfMap[i].s_opt)) == 0)
-        {
-            portObj->icf = icfMap[i].icf;
-            return COMM_PORT_OK;
-        }
-    }
-
-    return COMM_PORT_MAP_ICF_ERROR;
-}
-
-static CommErrorCode_e comm_Brt_Set(portObj_t portObj)
+/*
+ * get device attribute
+ */
+CommErrorCode_e comm_Get_Port_Atrribute(portObj_t *portObj)
 {
     struct termios setting;
+    speed_t speed_o, speed_i;
 
-    if(tcgetattr(portObj.hd, &setting) != 0)
+    printf("device: %s\n", portObj->portName);
+    printf("hd: %d\n", portObj->hd);
+
+    if(tcgetattr(portObj->hd, &setting) != 0)
     {
         return COMM_PORT_GET_ERROR;
     }
 
-    switch(portObj.brt)
+    /* get parity */
+    if(setting.c_cflag & PARENB)
     {
-        case 115200:
-            cfsetispeed(&setting, B115200);
-            cfsetospeed(&setting, B115200);
-            break;
-        case 230400:
-            cfsetispeed(&setting, B230400);
-            cfsetospeed(&setting, B230400);
-            break;
-        case 460800:
-            cfsetispeed(&setting, B460800);
-            cfsetospeed(&setting, B460800);
-            break;
-        case 921600:
-            cfsetispeed(&setting, B921600);
-            cfsetospeed(&setting, B921600);
-            break;
-        default:
-            cfsetispeed(&setting, B115200);
-            cfsetospeed(&setting, B115200);
-            break;
+        if(setting.c_cflag & PARODD)
+        {
+            printf("Odd parity is set.\n");
+        }
+        else
+        {
+            printf("Even parity is set.\n");
+        }
+    }
+    else
+    {
+        printf("None parity is set.\n");
     }
 
-    if(tcsetattr(portObj.hd, TCSANOW, &setting) != 0)
+    /* get frame size */
+    if(setting.c_cflag & CS7)
+    {
+        printf("7 data bit\n");
+    }
+    else if(setting.c_cflag & CS8)
+    {
+        printf("8 data bit\n");
+    }
+
+    /* get baudrate */
+    speed_i = cfgetispeed(&setting);
+    speed_o = cfgetospeed(&setting);
+    printf("out baudrate: %d\n",comm_Brt_Map(speed_o));
+    printf("in baudrate: %d\n",comm_Brt_Map(speed_i));
+
+    return COMM_PORT_OK;
+}
+
+/*
+ * set device baudrate
+ * 300 - 921600
+ */
+CommErrorCode_e comm_Brt_Set(portObj_t *portObj)
+{
+    struct termios setting;
+    unsigned int i;
+
+    if(tcgetattr(portObj->hd, &setting) != 0)
+    {
+        return COMM_PORT_GET_ERROR;
+    }
+
+    for(i=0; i<BRT_MAP_LEN; i++)
+    {
+        if(portObj->brt == brtMap[i].brt)
+        {
+            cfsetispeed(&setting, brtMap[i].brt_mask);
+            cfsetospeed(&setting, brtMap[i].brt_mask);
+            setting.c_cflag |= brtMap[i].brt_mask;
+        }
+    }
+
+    if(tcsetattr(portObj->hd, TCSANOW, &setting) != 0)
     {
         return COMM_PORT_SET_FAIL;
     }
@@ -260,16 +349,21 @@ static CommErrorCode_e comm_Brt_Set(portObj_t portObj)
     return COMM_PORT_OK;
 }
 
-static CommErrorCode_e comm_Icf_Set(portObj_t portObj)
+/*
+ * set device icf
+ * 8N1/7E1/7O1
+ */
+CommErrorCode_e comm_Icf_Set(portObj_t *portObj)
 {
     struct termios setting;
 
-    if(tcgetattr(portObj.hd, &setting) != 0)
+    if(tcgetattr(portObj->hd, &setting) != 0)
     {
         return COMM_PORT_GET_ERROR;
     }
 
-    switch(portObj.icf)
+    //printf("icf: %d\n", portObj->icf);
+    switch(portObj->icf)
     {
         case ICF_8N1:
             setting.c_cflag &= ~PARENB;
@@ -291,6 +385,7 @@ static CommErrorCode_e comm_Icf_Set(portObj_t portObj)
             setting.c_cflag &= ~CSIZE;
             setting.c_cflag |= CS7;
             break;
+        case ICF_7S1:   //fall through
         default:
             setting.c_cflag &= ~PARENB;
             setting.c_cflag &= ~CSTOPB;
@@ -299,7 +394,7 @@ static CommErrorCode_e comm_Icf_Set(portObj_t portObj)
             break;
     }
 
-    if(tcsetattr(portObj.hd, TCSANOW, &setting) != 0)
+    if(tcsetattr(portObj->hd, TCSANOW, &setting) != 0)
     {
         return COMM_PORT_SET_ICF_ERROR;
     }
@@ -307,16 +402,20 @@ static CommErrorCode_e comm_Icf_Set(portObj_t portObj)
     return COMM_PORT_OK;
 }
 
-static CommErrorCode_e comm_Fct_Set(portObj_t portObj)
+/*
+ * set device flowcontrl
+ * RTSCTS/XONXOFF/NONE
+ */
+CommErrorCode_e comm_Fct_Set(portObj_t *portObj)
 {
     struct termios setting;
 
-    if(tcgetattr(portObj.hd, &setting) != 0)
+    if(tcgetattr(portObj->hd, &setting) != 0)
     {
         return COMM_PORT_GET_ERROR;
     }
 
-    switch(portObj.fct)
+    switch(portObj->fct)
     {
         case FCT_RTS_CTS:
             setting.c_cflag |= CRTSCTS;
@@ -332,11 +431,12 @@ static CommErrorCode_e comm_Fct_Set(portObj_t portObj)
             break;
     }
 
-    if(tcsetattr(portObj.hd, TCSANOW, &setting) != 0)
+    if(tcsetattr(portObj->hd, TCSANOW, &setting) != 0)
     {
         return COMM_PORT_SET_ICF_ERROR;
     }
 
     return COMM_PORT_OK;
 }
+
 
