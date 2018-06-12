@@ -5,30 +5,30 @@
 
 int main(int argc,char** argv)
 {
-    portObj_t *portObj = NULL;
-    CommErrorCode_e res;
+    SportObj_t *portObj = NULL;
+    SportErrorCode_e res;
 
-    portObj = (portObj_t *)malloc(sizeof(portObj_t));
-    memset(portObj, 0x0, sizeof(portObj_t));
+    portObj = (SportObj_t *)malloc(sizeof(SportObj_t));
+    memset(portObj, 0x0, sizeof(SportObj_t));
 
-    res = comm_Get_Opt(portObj, argc, argv);
-    if(res != COMM_PORT_OK)
+    res = SPORT_Get_Opt(portObj, argc, argv);
+    if(res != SPORT_OK)
     {
         printf("device parm get fail!\n");
         free(portObj);
         return res;
     }
 
-    res = comm_Open_Port(portObj);
-    if(res != COMM_PORT_OK)
+    res = SPORT_Open_Port(portObj);
+    if(res != SPORT_OK)
     {
         printf("device open fail!\n");
         free(portObj);
         return res;
     }
 
-    res = comm_Get_Port_Atrribute(portObj);
-    if(res != COMM_PORT_OK)
+    res = SPORT_Get_Port_Atrribute(portObj);
+    if(res != SPORT_OK)
     {
         printf("device attribute get fail fail!\n");
         free(portObj);
@@ -36,8 +36,8 @@ int main(int argc,char** argv)
     }
 
 
-    res = comm_Close_Port(portObj);
-    if(res != COMM_PORT_OK)
+    res = SPORT_Close_Port(portObj);
+    if(res != SPORT_OK)
     {
         printf("device close fail!\n");
         free(portObj);
