@@ -2,24 +2,24 @@
 
 typedef enum
 {
-    COMM_PORT_OK                = 0,
-    COMM_PORT_OPEN_ERROR        = 0x100,
-    COMM_PORT_GET_ERROR         = 0x200,
-    COMM_PORT_GET_PARM_ERROR    = 0x201,
+    SPORT_OK                = 0,
+    SPORT_OPEN_ERROR        = 0x100,
+    SPORT_GET_ERROR         = 0x200,
+    SPORT_GET_PARM_ERROR    = 0x201,
 
-    COMM_PORT_SET_FAIL          = 0x300,
-    COMM_PORT_SET_BRT_ERROR     = 0x301,
-    COMM_PORT_SET_ICF_ERROR     = 0x302,
-    COMM_PORT_SET_FCT_ERROR     = 0x303,
+    SPORT_SET_FAIL          = 0x300,
+    SPORT_SET_BRT_ERROR     = 0x301,
+    SPORT_SET_ICF_ERROR     = 0x302,
+    SPORT_SET_FCT_ERROR     = 0x303,
 
-    COMM_PORT_CLOSE_ERROR       = 0x400,
+    SPORT_CLOSE_ERROR       = 0x400,
 
-    COMM_PORT_MAP_ERROR         = 0x500,
-    COMM_PORT_MAP_FCT_ERROR     = 0x501,
-    COMM_PORT_MAP_ICF_ERROR     = 0x502,
+    SPORT_MAP_ERROR         = 0x500,
+    SPORT_MAP_FCT_ERROR     = 0x501,
+    SPORT_MAP_ICF_ERROR     = 0x502,
 
-    COMM_PORT_UNKNOWN_ERROR     = 0xFFFFFFFF,
-}CommErrorCode_e;
+    SPORT_UNKNOWN_ERROR     = 0xFFFFFFFF,
+}SportErrorCode_e;
 
 typedef enum
 {
@@ -29,7 +29,7 @@ typedef enum
     ICF_7S1,
 
     ICF_UNKNOWN = 0xFFFFFFFF,
-}CommIcf_e;
+}SportIcf_e;
 
 typedef enum
 {
@@ -38,22 +38,22 @@ typedef enum
     FCT_NO,
 
     FCT_UNKNOWN = 0xFFFFFFFF,
-}CommFct_e;
+}SportFct_e;
 
 typedef struct
 {
     int          hd;    /* device handle */
     char         portName[64];
     unsigned int brt;   /* baudrate */
-    CommIcf_e    icf;   /* char framing */
-    CommFct_e    fct;   /* flow control */
-}portObj_t;
+    SportIcf_e    icf;   /* char framing */
+    SportFct_e    fct;   /* flow control */
+}SportObj_t;
 
-CommErrorCode_e comm_Get_Opt(portObj_t *portObj, int argc, char **argv);
-CommErrorCode_e comm_Open_Port(portObj_t *portObj);
-CommErrorCode_e comm_Brt_Set(portObj_t *portObj);
-CommErrorCode_e comm_Icf_Set(portObj_t *portObj);
-CommErrorCode_e comm_Fct_Set(portObj_t *portObj);
-CommErrorCode_e comm_Close_Port(portObj_t *portObj);
-CommErrorCode_e comm_Get_Port_Atrribute(portObj_t *portObj);
+SportErrorCode_e SPORT_Get_Opt(SportObj_t *portObj, int argc, char **argv);
+SportErrorCode_e SPORT_Open_Port(SportObj_t *portObj);
+SportErrorCode_e SPORT_Brt_Set(SportObj_t *portObj);
+SportErrorCode_e SPORT_Icf_Set(SportObj_t *portObj);
+SportErrorCode_e SPORT_Fct_Set(SportObj_t *portObj);
+SportErrorCode_e SPORT_Close_Port(SportObj_t *portObj);
+SportErrorCode_e SPORT_Get_Port_Atrribute(SportObj_t *portObj);
 

@@ -10,13 +10,13 @@
 /***** local typedef *****/
 typedef struct
 {
-    CommIcf_e   icf;
+    SportIcf_e   icf;
     const char  *s_opt;
 }icfMap_t;
 
 typedef struct
 {
-    CommFct_e   ftc;
+    SportFct_e   ftc;
     const char  *s_opt;
 }fctMap_t;
 
@@ -27,9 +27,9 @@ typedef struct
 }brtMap_t;
 
 /***** local function declare *****/
-static CommErrorCode_e comm_Fct_Map(portObj_t *portObj, char *opt);
-static CommErrorCode_e comm_Icf_Map(portObj_t *portObj, char *opt);
-static unsigned int comm_Brt_Map(speed_t speed);
+static SportErrorCode_e SPORT_Fct_Map(SportObj_t *portObj, char *opt);
+static SportErrorCode_e SPORT_Icf_Map(SportObj_t *portObj, char *opt);
+static unsigned int SPORT_Brt_Map(speed_t speed);
 
 /***** local data *****/
 static struct option commOpts[] = {
@@ -78,7 +78,7 @@ static const brtMap_t brtMap[] = {
 #define INVALID_HANDLE (int)0xFFFFFFFF
 
 /***** local function *****/
-static unsigned int comm_Brt_Map(speed_t speed)
+static unsigned int SPORT_Brt_Map(speed_t speed)
 {
     unsigned int i;
 
@@ -93,7 +93,7 @@ static unsigned int comm_Brt_Map(speed_t speed)
     return 0xFFFFFFFF;
 }
 
-static CommErrorCode_e comm_Fct_Map(portObj_t *portObj, char *opt)
+static SportErrorCode_e SPORT_Fct_Map(SportObj_t *portObj, char *opt)
 {
     unsigned int i;
 
@@ -102,14 +102,14 @@ static CommErrorCode_e comm_Fct_Map(portObj_t *portObj, char *opt)
         if(strncmp(opt, fctMap[i].s_opt, strlen(fctMap[i].s_opt)) == 0)
         {
             portObj->fct = fctMap[i].ftc;
-            return COMM_PORT_OK;
+            return SPORT_OK;
         }
     }
 
-    return COMM_PORT_MAP_FCT_ERROR;
+    return SPORT_MAP_FCT_ERROR;
 }
 
-static CommErrorCode_e comm_Icf_Map(portObj_t *portObj, char *opt)
+static SportErrorCode_e SPORT_Icf_Map(SportObj_t *portObj, char *opt)
 {
     unsigned int i;
 
@@ -118,24 +118,24 @@ static CommErrorCode_e comm_Icf_Map(portObj_t *portObj, char *opt)
         if(strncmp(opt, icfMap[i].s_opt, strlen(icfMap[i].s_opt)) == 0)
         {
             portObj->icf = icfMap[i].icf;
-            return COMM_PORT_OK;
+            return SPORT_OK;
         }
     }
 
-    return COMM_PORT_MAP_ICF_ERROR;
+    return SPORT_MAP_ICF_ERROR;
 }
 
 /**** public function *****/
 /*
  * demo function for get device param from cmd
  */
-CommErrorCode_e comm_Get_Opt(portObj_t *portObj, int argc, char **argv)
+SportErrorCode_e SPORT_Get_Opt(SportObj_t *portObj, int argc, char **argv)
 {
     while(1)
     {
         int c = 0 ;
         int optIndex = 0;
-        CommErrorCode_e res;
+        SportErrorCode_e res;
 
         c = getopt_long(argc, argv, shortOpts, commOpts, &optIndex);
         if(c == -1)
@@ -153,22 +153,22 @@ CommErrorCode_e comm_Get_Opt(portObj_t *portObj, int argc, char **argv)
                 else
                 {
                     printf("device path length exceed!\n");
-                    return COMM_PORT_GET_PARM_ERROR;
+                    return SPORT_GET_PARM_ERROR;
                 }
                 break;
             case 'b':
                 portObj->brt = (unsigned int)atoi(optarg);
                 break;
             case 'f':
-                res = comm_Fct_Map(portObj, optarg);
-                if(res != COMM_PORT_OK)
+                res = SPORT_Fct_Map(portObj, optarg);
+                if(res != SPORT_OK)
                 {
                     return res;
                 }
                 break;
             case 'i':
-                res = comm_Icf_Map(portObj, optarg);
-                if(res != COMM_PORT_OK)
+                res = SPORT_Icf_Map(portObj, optarg);
+                if(res != SPORT_OK)
                 {
                     return res;
                 }
@@ -187,10 +187,10 @@ CommErrorCode_e comm_Get_Opt(portObj_t *portObj, int argc, char **argv)
         }
         printf("\n");
 
-        return COMM_PORT_GET_PARM_ERROR;
+        return SPORT_GET_PARM_ERROR;
     }
 
-    return COMM_PORT_OK;
+    return SPORT_OK;
 }
 
 /*
@@ -199,44 +199,44 @@ CommErrorCode_e comm_Get_Opt(portObj_t *portObj, int argc, char **argv)
  * 2. icf setting
  * 3. flowcontrol setting
  */
-CommErrorCode_e comm_Open_Port(portObj_t *portObj)
+SportErrorCode_e SPORT_Open_Port(SportObj_t *portObj)
 {
     struct termios  setting;
-    CommErrorCode_e res = COMM_PORT_OK;
+    SportErrorCode_e res = SPORT_OK;
 
     portObj->hd = open(portObj->portName, O_RDWR | O_NOCTTY);
     if(portObj->hd < 0)
     {
         portObj->hd = INVALID_HANDLE;
-        return COMM_PORT_OPEN_ERROR;
+        return SPORT_OPEN_ERROR;
     }
 
     memset(&setting, 0x0, sizeof(setting));
 
     /* set baud rate */
-    res = comm_Brt_Set(portObj);
-    if(res != COMM_PORT_OK)
+    res = SPORT_Brt_Set(portObj);
+    if(res != SPORT_OK)
     {
         return res;
     }
 
     /* set icf */
-    res = comm_Icf_Set(portObj);
-    if(res != COMM_PORT_OK)
+    res = SPORT_Icf_Set(portObj);
+    if(res != SPORT_OK)
     {
         return res;
     }
 
     /* set flow control */
-    res = comm_Fct_Set(portObj);
-    if(res != COMM_PORT_OK)
+    res = SPORT_Fct_Set(portObj);
+    if(res != SPORT_OK)
     {
         return res;
     }
 
     if(tcgetattr(portObj->hd, &setting) != 0)
     {
-        return COMM_PORT_GET_ERROR;
+        return SPORT_GET_ERROR;
     }
     setting.c_cflag |= CREAD | CLOCAL | HUPCL;
 
@@ -246,7 +246,7 @@ CommErrorCode_e comm_Open_Port(portObj_t *portObj)
         close(portObj->hd);
         portObj->hd = INVALID_HANDLE;
 
-        return COMM_PORT_SET_FAIL;
+        return SPORT_SET_FAIL;
     }
 
     return res;
@@ -255,20 +255,20 @@ CommErrorCode_e comm_Open_Port(portObj_t *portObj)
 /*
  * close the device
  */
-CommErrorCode_e comm_Close_Port(portObj_t *portObj)
+SportErrorCode_e SPORT_Close_Port(SportObj_t *portObj)
 {
     if(portObj->hd != INVALID_HANDLE)
     {
         close(portObj->hd);
         portObj->hd = INVALID_HANDLE;
     }
-    return COMM_PORT_OK;
+    return SPORT_OK;
 }
 
 /*
  * get device attribute
  */
-CommErrorCode_e comm_Get_Port_Atrribute(portObj_t *portObj)
+SportErrorCode_e SPORT_Get_Port_Atrribute(SportObj_t *portObj)
 {
     struct termios setting;
     speed_t speed_o, speed_i;
@@ -278,7 +278,7 @@ CommErrorCode_e comm_Get_Port_Atrribute(portObj_t *portObj)
 
     if(tcgetattr(portObj->hd, &setting) != 0)
     {
-        return COMM_PORT_GET_ERROR;
+        return SPORT_GET_ERROR;
     }
 
     /* get parity */
@@ -311,24 +311,24 @@ CommErrorCode_e comm_Get_Port_Atrribute(portObj_t *portObj)
     /* get baudrate */
     speed_i = cfgetispeed(&setting);
     speed_o = cfgetospeed(&setting);
-    printf("out baudrate: %d\n",comm_Brt_Map(speed_o));
-    printf("in baudrate: %d\n",comm_Brt_Map(speed_i));
+    printf("out baudrate: %d\n",SPORT_Brt_Map(speed_o));
+    printf("in baudrate: %d\n",SPORT_Brt_Map(speed_i));
 
-    return COMM_PORT_OK;
+    return SPORT_OK;
 }
 
 /*
  * set device baudrate
  * 300 - 921600
  */
-CommErrorCode_e comm_Brt_Set(portObj_t *portObj)
+SportErrorCode_e SPORT_Brt_Set(SportObj_t *portObj)
 {
     struct termios setting;
     unsigned int i;
 
     if(tcgetattr(portObj->hd, &setting) != 0)
     {
-        return COMM_PORT_GET_ERROR;
+        return SPORT_GET_ERROR;
     }
 
     for(i=0; i<BRT_MAP_LEN; i++)
@@ -343,23 +343,23 @@ CommErrorCode_e comm_Brt_Set(portObj_t *portObj)
 
     if(tcsetattr(portObj->hd, TCSANOW, &setting) != 0)
     {
-        return COMM_PORT_SET_FAIL;
+        return SPORT_SET_FAIL;
     }
 
-    return COMM_PORT_OK;
+    return SPORT_OK;
 }
 
 /*
  * set device icf
  * 8N1/7E1/7O1
  */
-CommErrorCode_e comm_Icf_Set(portObj_t *portObj)
+SportErrorCode_e SPORT_Icf_Set(SportObj_t *portObj)
 {
     struct termios setting;
 
     if(tcgetattr(portObj->hd, &setting) != 0)
     {
-        return COMM_PORT_GET_ERROR;
+        return SPORT_GET_ERROR;
     }
 
     //printf("icf: %d\n", portObj->icf);
@@ -396,23 +396,23 @@ CommErrorCode_e comm_Icf_Set(portObj_t *portObj)
 
     if(tcsetattr(portObj->hd, TCSANOW, &setting) != 0)
     {
-        return COMM_PORT_SET_ICF_ERROR;
+        return SPORT_SET_ICF_ERROR;
     }
 
-    return COMM_PORT_OK;
+    return SPORT_OK;
 }
 
 /*
  * set device flowcontrl
  * RTSCTS/XONXOFF/NONE
  */
-CommErrorCode_e comm_Fct_Set(portObj_t *portObj)
+SportErrorCode_e SPORT_Fct_Set(SportObj_t *portObj)
 {
     struct termios setting;
 
     if(tcgetattr(portObj->hd, &setting) != 0)
     {
-        return COMM_PORT_GET_ERROR;
+        return SPORT_GET_ERROR;
     }
 
     switch(portObj->fct)
@@ -433,10 +433,10 @@ CommErrorCode_e comm_Fct_Set(portObj_t *portObj)
 
     if(tcsetattr(portObj->hd, TCSANOW, &setting) != 0)
     {
-        return COMM_PORT_SET_ICF_ERROR;
+        return SPORT_SET_ICF_ERROR;
     }
 
-    return COMM_PORT_OK;
+    return SPORT_OK;
 }
 
 
