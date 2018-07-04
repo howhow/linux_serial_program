@@ -204,12 +204,16 @@ SportErrorCode_e SPORT_Open_Port(SportObj_t *portObj)
     struct termios  setting;
     SportErrorCode_e res = SPORT_OK;
 
+    //portObj->hd = open(portObj->portName, O_RDWR | O_NOCTTY | O_NDELAY);
     portObj->hd = open(portObj->portName, O_RDWR | O_NOCTTY);
     if(portObj->hd < 0)
     {
         portObj->hd = INVALID_HANDLE;
         return SPORT_OPEN_ERROR;
     }
+
+    //fcntl(portObj->hd, F_SETFL, FNDELAY);
+    //fcntl(portObj->hd, F_SETFL, 0);
 
     memset(&setting, 0x0, sizeof(setting));
 
@@ -238,9 +242,17 @@ SportErrorCode_e SPORT_Open_Port(SportObj_t *portObj)
     {
         return SPORT_GET_ERROR;
     }
-    setting.c_cflag |= CREAD | CLOCAL | HUPCL;
+    setting.c_cflag |= CREAD | CLOCAL;
+#if 1
+    setting.c_iflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+#else
+    setting.c_iflag |= (ICANON | ECHO | ECHOE |ICRNL);
+#endif
+    //setting.c_cc[VTIME] = 0;
+    //setting.c_cc[VMIN] = 10;
 
     /* update termiox NOW */
+    tcflush(portObj->hd, TCIFLUSH);
     if(tcsetattr(portObj->hd, TCSANOW, &setting) != 0)
     {
         close(portObj->hd);
@@ -439,4 +451,66 @@ SportErrorCode_e SPORT_Fct_Set(SportObj_t *portObj)
     return SPORT_OK;
 }
 
+/*
+ * write data to port
+ */
+SportErrorCode_e SPORT_Write(SportObj_t *portObj, char * data)
+{
+    int nbytes;
+
+    nbytes = write(portObj->hd, data, strlen(data));
+
+    if(nbytes > 0)
+    {
+        printf("%d written to %s\n", nbytes, portObj->portName);
+        return SPORT_OK;
+    }
+    else
+    {
+        return SPORT_WRITE_ERROR;
+    }
+}
+
+/*
+ * read 1 byte
+ */
+static int read_one_byte(SportObj_t *portObj, char *data)
+{
+    return  read(portObj->hd, data, 1);
+}
+
+/*
+ * read data from port
+ */
+SportErrorCode_e SPORT_Read(SportObj_t *portObj)
+{
+    static const char *res[] = { "OK", "ERROR", "CONNECT" };
+    char buff[256];
+    unsigned int i;
+    unsigned int flag = 1;
+
+    usleep(50000);
+    while(flag)
+    {
+        int nbytes;
+        memset(buff, 0x0, sizeof(buff));
+        nbytes = read(portObj->hd, buff, 256);
+
+        if(nbytes > 0)
+        {
+            buff[nbytes] = 0;
+            printf("%s\n", (char *)buff);
+
+            for(i=0; i<(sizeof(res)/sizeof(res[0])); i++)
+            {
+                if(strstr(buff, res[i]) != NULL)
+                {
+                    flag = 0;
+                }
+            }
+        }
+    }
+
+    return SPORT_OK;
+}
 

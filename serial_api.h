@@ -12,11 +12,13 @@ typedef enum
     SPORT_SET_ICF_ERROR     = 0x302,
     SPORT_SET_FCT_ERROR     = 0x303,
 
-    SPORT_CLOSE_ERROR       = 0x400,
+    SPORT_READ_ERROR        = 0x400,
+    SPORT_WRITE_ERROR       = 0x500,
+    SPORT_CLOSE_ERROR       = 0x600,
 
-    SPORT_MAP_ERROR         = 0x500,
-    SPORT_MAP_FCT_ERROR     = 0x501,
-    SPORT_MAP_ICF_ERROR     = 0x502,
+    SPORT_MAP_ERROR         = 0x700,
+    SPORT_MAP_FCT_ERROR     = 0x701,
+    SPORT_MAP_ICF_ERROR     = 0x702,
 
     SPORT_UNKNOWN_ERROR     = 0xFFFFFFFF,
 }SportErrorCode_e;
@@ -56,4 +58,6 @@ SportErrorCode_e SPORT_Icf_Set(SportObj_t *portObj);
 SportErrorCode_e SPORT_Fct_Set(SportObj_t *portObj);
 SportErrorCode_e SPORT_Close_Port(SportObj_t *portObj);
 SportErrorCode_e SPORT_Get_Port_Atrribute(SportObj_t *portObj);
+SportErrorCode_e SPORT_Write(SportObj_t *portObj, char *data);
+SportErrorCode_e SPORT_Read(SportObj_t *portObj);
 
