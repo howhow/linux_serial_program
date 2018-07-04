@@ -283,16 +283,19 @@ SportErrorCode_e SPORT_Close_Port(SportObj_t *portObj)
 SportErrorCode_e SPORT_Get_Port_Atrribute(SportObj_t *portObj)
 {
     struct termios setting;
+#ifdef _DEBUG_
     speed_t speed_o, speed_i;
 
     printf("device: %s\n", portObj->portName);
     printf("hd: %d\n", portObj->hd);
+#endif
 
     if(tcgetattr(portObj->hd, &setting) != 0)
     {
         return SPORT_GET_ERROR;
     }
 
+#ifdef _DEBUG_
     /* get parity */
     if(setting.c_cflag & PARENB)
     {
@@ -325,6 +328,7 @@ SportErrorCode_e SPORT_Get_Port_Atrribute(SportObj_t *portObj)
     speed_o = cfgetospeed(&setting);
     printf("out baudrate: %d\n",SPORT_Brt_Map(speed_o));
     printf("in baudrate: %d\n",SPORT_Brt_Map(speed_i));
+#endif
 
     return SPORT_OK;
 }
@@ -462,7 +466,9 @@ SportErrorCode_e SPORT_Write(SportObj_t *portObj, char * data)
 
     if(nbytes > 0)
     {
-        printf("%d written to %s\n", nbytes, portObj->portName);
+#ifdef _DEBUG_
+        printf("%d byte(s) written to %s\n", nbytes, portObj->portName);
+#endif
         return SPORT_OK;
     }
     else
